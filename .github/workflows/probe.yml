@@ -16,6 +16,14 @@ jobs:
           echo "=====PROBE-BEGIN====="
           cat "$RUNNER_TEMP/out/probe.txt"
           echo "=====PROBE-END====="
+      - name: Software inventory
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          bash guest-inventory.sh > "$RUNNER_TEMP/out/inv.txt" 2>&1 || true
+          echo "=====INV-BEGIN====="
+          cat "$RUNNER_TEMP/out/inv.txt"
+          echo "=====INV-END====="
       - name: Actions services surface (names only)
         shell: bash
         run: |
