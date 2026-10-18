@@ -1,0 +1,32 @@
+name: parity-probe
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run environment probe (as the default step user)
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          bash guest-probe.sh > "$RUNNER_TEMP/out/probe.txt" 2>&1 || true
+          echo "probe lines: $(wc -l < "$RUNNER_TEMP/out/probe.txt")"
+          echo "=====PROBE-BEGIN====="
+          cat "$RUNNER_TEMP/out/probe.txt"
+          echo "=====PROBE-END====="
+      - name: Actions services surface (names only)
+        shell: bash
+        run: |
+          for v in ACTIONS_CACHE_URL ACTIONS_RESULTS_URL ACTIONS_RUNTIME_URL ACTIONS_RUNTIME_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_ID_TOKEN_REQUEST_TOKEN GITHUB_TOKEN GITHUB_SERVER_URL GITHUB_API_URL GITHUB_GRAPHQL_URL RUNNER_OS RUNNER_ARCH RUNNER_NAME RUNNER_ENVIRONMENT RUNNER_TOOL_CACHE RUNNER_TEMP RUNNER_WORKSPACE GITHUB_WORKSPACE GITHUB_ACTION_PATH GITHUB_PATH GITHUB_ENV GITHUB_OUTPUT GITHUB_STATE GITHUB_STEP_SUMMARY GITHUB_EVENT_PATH CI GITHUB_ACTIONS ImageOS ImageVersion AGENT_TOOLSDIRECTORY ACCEPT_EULA DEBIAN_FRONTEND; do
+            if [ -n "${!v+x}" ]; then printf 'SET   %s (len=%s)\n' "$v" "${#v}"; else printf 'UNSET %s\n' "$v"; fi
+          done
+      - name: Step-level behaviours
+        shell: bash
+        run: |
+          echo "default shell: $0 / $SHELL"; ps -o pid,args -p $$ ; sudo -n id; echo "workspace=$GITHUB_WORKSPACE"; ls -ld "$GITHUB_WORKSPACE" "$RUNNER_TEMP" "$RUNNER_TOOL_CACHE"; df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"; id; stat -c '%U:%G %a' "$GITHUB_WORKSPACE"
+      - name: Service container / docker action surface
+        uses: docker://alpine:3.20
+        with:
+          args: sh -c "id; cat /etc/resolv.conf; ls /github/workspace | head -3"
